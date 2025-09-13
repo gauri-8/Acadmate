@@ -41,18 +41,35 @@ class LoginPage extends StatelessWidget {
         // Navigate to next page (role based navigation later)
         // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
       } else {
-        await FirebaseAuth.instance.signOut();
+        await logout();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Please login with your IIITV email")),
         );
       }
-    } catch (e) {
+    } catch (e,stack) {
       debugPrint("Google login error: $e");
+      debugPrint("Stacktrace: $stack");
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Login failed, try again")),
+        SnackBar(content: Text("Login failed: $e")),
       );
     }
   }
+
+  Future<void> logout() async {
+    try {
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+
+      // Sign out from Google
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+
+      debugPrint("User logged out successfully.");
+    } catch (e) {
+      debugPrint("Logout error: $e");
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
