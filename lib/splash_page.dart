@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'login_page.dart';
+import 'home_page.dart';
 
 /// A simple splash page for AcadMate.
 /// - Shows full-screen background, centered title, and a loading indicator.
-/// - Navigates to LoginPage after a 2-second delay.
+/// - Navigates based on FirebaseAuth state.
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -16,11 +18,19 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 1), () async {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const LoginPage()),
-      );
+      final user = FirebaseAuth.instance.currentUser;
+      if (!mounted) return;
+      if (user == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      }
     });
   }
 

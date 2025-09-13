@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "840032619672",
+    "project_id": "acadmate-50cbd",
+    "storage_bucket": "acadmate-50cbd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:840032619672:android:a147b35c755c94645154ed",
+        "android_client_info": {
+          "package_name": "com.example.acadmate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "840032619672-9b5nnqhdp9o1srvfq9h1ssi3bfgdvmfd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.acadmate",
+            "certificate_hash": "a026bf0162d423dd119d67c89cbd3e09cbd9db66"
+          }
+        },
+        {
+          "client_id": "840032619672-tjbg6hhg5vqaj55303vg2no7j4vo7ccf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.acadmate",
+            "certificate_hash": "386e31f20d9b894d3ca826a07e289f66ff1b6b83"
+          }
+        },
+        {
+          "client_id": "840032619672-4cmc57lcds93tf023iv39uvv6795jfog.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA44WC4u4Q4uf9Yc6lemsdjz1UtBAEbfmI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "840032619672-4cmc57lcds93tf023iv39uvv6795jfog.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "840032619672-ia1chbobuuqr2sgdkekqmpu01c9huiu0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.acadmate"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

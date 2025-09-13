@@ -1,105 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-/// Frontend-only Login Page for AcadMate.
-/// No backend or Firebase logic included.
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
 
-  // Placeholder for backend integration
-  Future<void> handleGoogleLogin() async {
-    // Intentionally left empty for future integration
+  Future<void> handleGoogleLogin(BuildContext context) async {
+    try {
+      // Step 1: Trigger Google Sign-In
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email'],
+        // Restrict login to only your institute domain
+        hostedDomain: "iiitv.ac.in",
+      );
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return; // cancelled login
+
+      // Step 2: Get Auth details
+      final GoogleSignInAuthentication googleAuth =
+      await googleUser.authentication;
+
+      // Step 3: Create Firebase credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Step 4: Sign in to Firebase
+      final UserCredential userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final user = userCredential.user;
+
+      // Step 5: Verify email domain
+      if (user != null && user.email!.endsWith("@iiitvadodara.ac.in")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Welcome ${user.displayName}!")),
+        );
+        // Navigate to next page (role based navigation later)
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
+      } else {
+        await FirebaseAuth.instance.signOut();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Please login with your IIITV email")),
+        );
+      }
+    } catch (e) {
+      debugPrint("Google login error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Login failed, try again")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final Color lightBorder = Colors.grey.shade300;
-    final Color subtitleColor = Colors.grey.shade600;
-
     return Scaffold(
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'AcadMate',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Login with your college account',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: subtitleColor,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Continue with Google button
-              ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: double.infinity),
-                child: ElevatedButton(
-                  onPressed: handleGoogleLogin,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black87,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: BorderSide(color: lightBorder),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Simple "G" badge as a lightweight Google icon placeholder
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: const Text(
-                          'G',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            color: Colors.red,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Continue with Google',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-              Text(
-                'Powered by College ID',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: subtitleColor,
-                ),
-              ),
-            ],
-          ),
+        child: ElevatedButton.icon(
+          onPressed: () => handleGoogleLogin(context),
+          icon: const Icon(Icons.login),
+          label: const Text("Continue with Google"),
         ),
       ),
     );
