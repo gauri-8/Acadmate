@@ -1,0 +1,34 @@
+{
+  "users": {
+    "stu001": {
+      "name": "Manush Patel",
+      "email": "202451102@iiitvadodara.ac.in",
+      "role": "student",
+      "contact": "+91 9998839585",
+      "cpi": 7.52,
+      "semester": 3
+    },
+    "teach001": {
+      "name": "Dr. Neha Gupta",
+      "email": "neha.gupta@iiitv.ac.in",
+      "role": "teacher",
+      "photoUrl": "",
+      "contact": "+91 9988776655",
+      "attendancePercent": null,
+      "spi": null,
+      "cpi": null,
+      "currentSemester": null
+    },
+    "cr001": {
+      "name": "Siddharth Verma",
+      "email": "siddharth@iiitv.ac.in",
+      "role": "cr",
+      "photoUrl": "",
+      "contact": "+91 9090909090",
+      "attendancePercent": 88,
+      "spi": 8.2,
+      "cpi": 8.1,
+      "currentSemester": 5
+    }
+  }
+}

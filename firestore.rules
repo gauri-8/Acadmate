@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection rules
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if request.auth != null && request.auth.uid == userId;
+      // Users can update their own profile (name, spi, cpi)
+      allow update: if request.auth != null && 
+        request.auth.uid == userId &&
+        request.resource.data.keys().hasAll(['name', 'email', 'role']) &&
+        request.resource.data.email == resource.data.email &&
+        request.resource.data.role == resource.data.role;
+      // Only admins can create user documents (handled in your app logic)
+      allow create: if request.auth != null;
+    }
+    
+    // Courses collection rules
+    match /courses/{courseId} {
+      // Teachers can read courses they teach
+      allow read: if request.auth != null && 
+        (resource.data.teacherId == request.auth.uid || 
+         request.auth.token.role == 'admin');
+      // Only teachers can create/update courses
+      allow create, update: if request.auth != null && 
+        request.auth.token.role == 'teacher' &&
+        request.resource.data.teacherId == request.auth.uid;
+      // Only admins can delete courses
+      allow delete: if request.auth != null && 
+        request.auth.token.role == 'admin';
+    }
+    
+    // Results collection rules
+    match /results/{resultId} {
+      // Students can read their own results
+      allow read: if request.auth != null && 
+        (resource.data.studentId == request.auth.uid ||
+         resource.data.uploadedBy == request.auth.uid ||
+         request.auth.token.role == 'admin');
+      // Only teachers can create results
+      allow create: if request.auth != null && 
+        request.auth.token.role == 'teacher' &&
+        request.resource.data.uploadedBy == request.auth.uid;
+      // Only the teacher who uploaded can update/delete
+      allow update, delete: if request.auth != null && 
+        resource.data.uploadedBy == request.auth.uid;
+    }
+  }
+}
