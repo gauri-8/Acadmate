@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'home_page.dart'; // Import the home page
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -36,41 +38,67 @@ class LoginPage extends StatelessWidget {
       final user = userCredential.user;
 
       if (user != null && user.email!.endsWith("@iiitvadodara.ac.in")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Welcome ${user.displayName}!")),
-        );
+        // Check if the user document exists
+        final userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final userDoc = await userDocRef.get();
+
+        if (!userDoc.exists) {
+          // If the document doesn't exist, create it
+          await userDocRef.set({
+            'name': user.displayName,
+            'email': user.email,
+            'role': 'student', // Assign a default role
+            'cpi': 0.0,
+            'spi': 0.0,
+          });
+        }
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+        if (context.mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        }
+
       } else {
         await logout();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Please login with your IIITV email")),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please login with your IIITV email")),
+          );
+        }
       }
-    } catch (e,stack) {
+    } catch (e, stack) {
       debugPrint("Google login error: $e");
       debugPrint("Stacktrace: $stack");
-      
+
       // If there's an error, try to clear everything and show a helpful message
-      await logout();
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Login failed. Please try again or restart the app.\nError: $e"),
-          duration: const Duration(seconds: 5),
-        ),
-      );
+      // await logout();
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+                "Login failed. Please try again or restart the app.\nError: $e"),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     }
   }
 
   Future<void> logout() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      
+
       // Sign out from Google first
       await googleSignIn.signOut();
-      
+
       // Then sign out from Firebase
       await FirebaseAuth.instance.signOut();
-      
+
       // Clear any cached data
       await googleSignIn.disconnect();
 
@@ -79,7 +107,6 @@ class LoginPage extends StatelessWidget {
       debugPrint("Logout error: $e");
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
