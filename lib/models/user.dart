@@ -1,9 +1,8 @@
-//BASECLASS
 class User {
   final String id;
   final String name;
   final String email;
-  final String role; // student, teacher, cr
+  final String role;
 
   User({
     required this.id,

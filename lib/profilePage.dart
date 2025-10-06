@@ -37,8 +37,12 @@ class _ProfilePageState extends State<ProfilePage> {
           .doc(widget.userId)
           .update({
         'name': _nameController.text.trim(),
-        'spi': _spiController.text.isNotEmpty ? double.parse(_spiController.text) : null,
-        'cpi': _cpiController.text.isNotEmpty ? double.parse(_cpiController.text) : null,
+        'spi': _spiController.text.isNotEmpty
+            ? double.parse(_spiController.text)
+            : null,
+        'cpi': _cpiController.text.isNotEmpty
+            ? double.parse(_cpiController.text)
+            : null,
       });
 
       setState(() => _isEditing = false);
@@ -83,17 +87,17 @@ class _ProfilePageState extends State<ProfilePage> {
           if (!_isEditing)
             IconButton(
               icon: const Icon(Icons.edit),
-              onPressed: () {
-                // We'll set this in the FutureBuilder
-              },
+              onPressed: () {},
               tooltip: 'Edit Profile',
             ),
         ],
       ),
       body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection("users").doc(widget.userId).get(),
+        future: FirebaseFirestore.instance
+            .collection("users")
+            .doc(widget.userId)
+            .get(),
         builder: (context, snapshot) {
-          // Loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: Column(
@@ -107,7 +111,6 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
 
-          // Error state
           if (snapshot.hasError) {
             return Center(
               child: Column(
@@ -116,7 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Icon(
                     Icons.error_outline,
                     size: 64,
-                    color: Colors.red[300],
+                    color: Colors.red,
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -132,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
-                      setState(() {}); // Trigger rebuild
+                      setState(() {});
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text("Try Again"),
@@ -142,7 +145,6 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
 
-          // No data state
           if (!snapshot.hasData || !snapshot.data!.exists) {
             return Center(
               child: Column(
@@ -158,6 +160,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     "Profile Not Found",
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
+                  
                   const SizedBox(height: 8),
                   Text(
                     "This user profile doesn't exist or has been deleted.",
@@ -169,15 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
             );
           }
 
-          // Success state - display profile
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          
-          // Set up edit button
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (AppBar.of(context) != null) {
-              // Update the edit button action
-            }
-          });
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -186,7 +181,6 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Profile Header Card
                   Card(
                     elevation: 4,
                     shape: RoundedRectangleBorder(
@@ -209,7 +203,9 @@ class _ProfilePageState extends State<ProfilePage> {
                             radius: 40,
                             backgroundColor: Colors.white,
                             child: Text(
-                              (data['name'] ?? 'U').substring(0, 1).toUpperCase(),
+                              (data['name'] ?? 'U')
+                                  .substring(0, 1)
+                                  .toUpperCase(),
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -257,10 +253,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Academic Information Card
                   Card(
                     elevation: 2,
                     shape: RoundedRectangleBorder(
@@ -290,8 +283,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             ],
                           ),
                           const SizedBox(height: 20),
-
-                          // Name Field
                           _buildInfoField(
                             label: "Full Name",
                             value: data['name'] ?? 'Not set',
@@ -299,20 +290,14 @@ class _ProfilePageState extends State<ProfilePage> {
                             isEditable: _isEditing,
                             icon: Icons.person,
                           ),
-
                           const SizedBox(height: 16),
-
-                          // Email Field (Read-only)
                           _buildInfoField(
                             label: "Email",
                             value: data['email'] ?? 'Not set',
                             isEditable: false,
                             icon: Icons.email,
                           ),
-
                           const SizedBox(height: 16),
-
-                          // SPI Field
                           _buildInfoField(
                             label: "SPI (Semester Performance Index)",
                             value: data['spi']?.toString() ?? 'Not set',
@@ -321,18 +306,21 @@ class _ProfilePageState extends State<ProfilePage> {
                             icon: Icons.trending_up,
                             keyboardType: TextInputType.number,
                             validator: (value) {
-                              if (_isEditing && value != null && value.isNotEmpty) {
+                              if (_isEditing &&
+                                  value != null &&
+                                  value.isNotEmpty) {
                                 final spi = double.tryParse(value);
-                                if (spi == null) return 'Please enter a valid number';
-                                if (spi < 0 || spi > 10) return 'SPI should be between 0 and 10';
+                                if (spi == null) {
+                                  return 'Please enter a valid number';
+                                }
+                                if (spi < 0 || spi > 10) {
+                                  return 'SPI should be between 0 and 10';
+                                }
                               }
                               return null;
                             },
                           ),
-
                           const SizedBox(height: 16),
-
-                          // CPI Field
                           _buildInfoField(
                             label: "CPI (Cumulative Performance Index)",
                             value: data['cpi']?.toString() ?? 'Not set',
@@ -341,10 +329,16 @@ class _ProfilePageState extends State<ProfilePage> {
                             icon: Icons.analytics,
                             keyboardType: TextInputType.number,
                             validator: (value) {
-                              if (_isEditing && value != null && value.isNotEmpty) {
+                              if (_isEditing &&
+                                  value != null &&
+                                  value.isNotEmpty) {
                                 final cpi = double.tryParse(value);
-                                if (cpi == null) return 'Please enter a valid number';
-                                if (cpi < 0 || cpi > 10) return 'CPI should be between 0 and 10';
+                                if (cpi == null) {
+                                  return 'Please enter a valid number';
+                                }
+                                if (cpi < 0 || cpi > 10) {
+                                  return 'CPI should be between 0 and 10';
+                                }
                               }
                               return null;
                             },
@@ -353,10 +347,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Action Buttons
                   if (_isEditing) ...[
                     Row(
                       children: [
@@ -373,11 +364,13 @@ class _ProfilePageState extends State<ProfilePage> {
                                     ),
                                   )
                                 : const Icon(Icons.save),
-                            label: Text(_isLoading ? "Saving..." : "Save Changes"),
+                            label: Text(
+                                _isLoading ? "Saving..." : "Save Changes"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green[600],
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -391,7 +384,8 @@ class _ProfilePageState extends State<ProfilePage> {
                             icon: const Icon(Icons.cancel),
                             label: const Text("Cancel"),
                             style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -488,7 +482,9 @@ class _ProfilePageState extends State<ProfilePage> {
               value,
               style: TextStyle(
                 fontSize: 16,
-                color: value == 'Not set' ? Colors.grey[500] : Colors.black87,
+                color: value == 'Not set'
+                    ? Colors.grey[500]
+                    : Colors.black87,
               ),
             ),
           ),

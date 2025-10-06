@@ -1,18 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import 'profilePage.dart';
 import 'viewResult.dart';
 import 'uploadResult.dart';
+import 'migration_page.dart';
+import 'models/student.dart';
+import 'services/firestore_service.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   Future<void> _signOut(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    if (context.mounted) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
+    try {
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+      
+      // Sign out from Google (this fixes the persistence issue)
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      await googleSignIn.signOut();
+      
+      if (context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      debugPrint('Logout error: $e');
+      // Still navigate even if there's an error
+      if (context.mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     }
   }
 
@@ -27,6 +45,29 @@ class HomePage extends StatelessWidget {
           .get();
       return doc.data()?['role'];
     } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Student?> _getStudentData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      
+      if (doc.exists && doc.data()?['role'] == 'student') {
+        final data = doc.data()!;
+        data['id'] = doc.id;
+        return Student.fromJson(data);
+      }
+      return null;
+    }
+
+    catch (e) {
       return null;
     }
   }
@@ -73,7 +114,6 @@ class HomePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Welcome Card
                 Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(
@@ -143,7 +183,6 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // Quick Actions
                 Text(
                   'Quick Actions',
                   style: TextStyle(
@@ -154,7 +193,6 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // Action Cards
                 _buildActionCard(
                   context: context,
                   title: 'View Results',
@@ -194,6 +232,24 @@ class HomePage extends StatelessWidget {
                   const SizedBox(height: 12),
                 ],
 
+                // Allow migration for all users (temporary for setup)
+                _buildActionCard(
+                  context: context,
+                  title: 'Database Migration',
+                  subtitle: 'Migrate to new database structure',
+                  icon: Icons.storage,
+                  color: Colors.red,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MigrationPage(),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+
                 _buildActionCard(
                   context: context,
                   title: 'Profile',
@@ -214,7 +270,6 @@ class HomePage extends StatelessWidget {
 
                 const SizedBox(height: 24),
 
-                // Stats Section (if student)
                 if (role == 'student') ...[
                   Text(
                     'Academic Overview',
@@ -303,26 +358,48 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildStatsCard(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+    return FutureBuilder<Student?>(
+      future: _getStudentData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
+
+        final student = snapshot.data;
+        
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
               children: [
-                _buildStatItem('SPI', '8.5', Colors.blue),
-                _buildStatItem('CPI', '8.2', Colors.green),
-                _buildStatItem('Results', '12', Colors.orange),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildStatItem('SPI', student?.spi.toStringAsFixed(2) ?? '-', Colors.blue),
+                    _buildStatItem('CPI', student?.cpi.toStringAsFixed(2) ?? '-', Colors.green),
+                    _buildStatItem('Attendance', '${student?.attendancePercentage.toStringAsFixed(1) ?? '-'}%', Colors.orange),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -7,39 +7,38 @@ class LoginPage extends StatelessWidget {
 
   Future<void> handleGoogleLogin(BuildContext context) async {
     try {
-      // Step 1: Trigger Google Sign-In
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email'],
-        // Restrict login to only your institute domain
-        hostedDomain: "iiitv.ac.in",
+        hostedDomain: "iiitvadodara.ac.in",
       );
 
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) return; // cancelled login
+      // Clear any existing sign-in state
+      await googleSignIn.signOut();
+      await FirebaseAuth.instance.signOut();
 
-      // Step 2: Get Auth details
+      // Add a small delay to ensure sign-out is complete
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return;
+
       final GoogleSignInAuthentication googleAuth =
       await googleUser.authentication;
 
-      // Step 3: Create Firebase credential
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Step 4: Sign in to Firebase
       final UserCredential userCredential =
       await FirebaseAuth.instance.signInWithCredential(credential);
 
       final user = userCredential.user;
 
-      // Step 5: Verify email domain
       if (user != null && user.email!.endsWith("@iiitvadodara.ac.in")) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Welcome ${user.displayName}!")),
         );
-        // Navigate to next page (role based navigation later)
-        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
       } else {
         await logout();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -49,20 +48,31 @@ class LoginPage extends StatelessWidget {
     } catch (e,stack) {
       debugPrint("Google login error: $e");
       debugPrint("Stacktrace: $stack");
+      
+      // If there's an error, try to clear everything and show a helpful message
+      await logout();
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: $e")),
+        SnackBar(
+          content: Text("Login failed. Please try again or restart the app.\nError: $e"),
+          duration: const Duration(seconds: 5),
+        ),
       );
     }
   }
 
   Future<void> logout() async {
     try {
-      // Sign out from Firebase
-      await FirebaseAuth.instance.signOut();
-
-      // Sign out from Google
       final GoogleSignIn googleSignIn = GoogleSignIn();
+      
+      // Sign out from Google first
       await googleSignIn.signOut();
+      
+      // Then sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+      
+      // Clear any cached data
+      await googleSignIn.disconnect();
 
       debugPrint("User logged out successfully.");
     } catch (e) {
@@ -74,11 +84,65 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('AcadMate Login'),
+        backgroundColor: Colors.blue[600],
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
       body: Center(
-        child: ElevatedButton.icon(
-          onPressed: () => handleGoogleLogin(context),
-          icon: const Icon(Icons.login),
-          label: const Text("Continue with Google"),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.school,
+                size: 80,
+                color: Colors.blue[600],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Welcome to AcadMate',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your Academic Management System',
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 48),
+              ElevatedButton.icon(
+                onPressed: () => handleGoogleLogin(context),
+                icon: const Icon(Icons.login),
+                label: const Text("Continue with Google"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[600],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Please use your IIITV email account',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

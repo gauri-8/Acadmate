@@ -17,12 +17,12 @@ class StudentResultsPage extends StatelessWidget {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection("results")
-            .where("studentId", isEqualTo: studentId)
-            .orderBy("uploadedAt", descending: true)
+            .collection("users")
+            .doc(studentId)
+            .collection("Results")
+            .orderBy("timestamp", descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          // Loading state
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: Column(
@@ -36,7 +36,6 @@ class StudentResultsPage extends StatelessWidget {
             );
           }
 
-          // Error state
           if (snapshot.hasError) {
             return Center(
               child: Column(
@@ -61,7 +60,8 @@ class StudentResultsPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () {
-                      // This will trigger a rebuild and retry
+                      // Trigger a rebuild by calling setState equivalent
+                      (context as Element).markNeedsBuild();
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text("Try Again"),
@@ -71,7 +71,6 @@ class StudentResultsPage extends StatelessWidget {
             );
           }
 
-          // No data state
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Column(
@@ -98,11 +97,9 @@ class StudentResultsPage extends StatelessWidget {
             );
           }
 
-          // Success state - display results
           final docs = snapshot.data!.docs;
           return RefreshIndicator(
             onRefresh: () async {
-              // Trigger a refresh by rebuilding the stream
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -164,6 +161,14 @@ class StudentResultsPage extends StatelessWidget {
                             fontSize: 16,
                             color: Colors.grey[700],
                             fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Uploaded: ${_formatTimestamp(data['timestamp'])}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[500],
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -229,5 +234,22 @@ class StudentResultsPage extends StatelessWidget {
     if (percentage >= 70) return Colors.orange[600]!;
     if (percentage >= 60) return Colors.amber[600]!;
     return Colors.red[600]!;
+  }
+
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown date';
+    
+    try {
+      if (timestamp is Timestamp) {
+        final date = timestamp.toDate();
+        return '${date.day}/${date.month}/${date.year}';
+      } else if (timestamp is String) {
+        // Handle string timestamp if needed
+        return timestamp;
+      }
+      return 'Invalid date';
+    } catch (e) {
+      return 'Invalid date';
+    }
   }
 }
