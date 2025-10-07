@@ -22,11 +22,27 @@
           }
         },
         {
+          "client_id": "840032619672-7bop9k60l2v8kdnl4qtfme9ks6d0266o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.acadmate",
+            "certificate_hash": "926354264921547f16f256b1da684a3d7ee4e78a"
+          }
+        },
+        {
           "client_id": "840032619672-9b5nnqhdp9o1srvfq9h1ssi3bfgdvmfd.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.acadmate",
             "certificate_hash": "a026bf0162d423dd119d67c89cbd3e09cbd9db66"
+          }
+        },
+        {
+          "client_id": "840032619672-ab8fhcctjlqpg429opqs4bsfab6q6h43.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.acadmate",
+            "certificate_hash": "d88955217c07dff0457742fa83f7c21e1480275d"
           }
         },
         {
