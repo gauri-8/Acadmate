@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'services/firestore_service.dart';
+import 'models/result.dart';
+import 'models/course.dart';
 
 class StudentResultsPage extends StatelessWidget {
   final String studentId;
@@ -15,13 +19,8 @@ class StudentResultsPage extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection("users")
-            .doc(studentId)
-            .collection("Results")
-            .orderBy("timestamp", descending: true)
-            .snapshots(),
+      body: StreamBuilder<List<Result>>(
+        stream: FirestoreService.getStudentResults(studentId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -57,21 +56,12 @@ class StudentResultsPage extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Trigger a rebuild by calling setState equivalent
-                      (context as Element).markNeedsBuild();
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text("Try Again"),
-                  ),
                 ],
               ),
             );
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -88,7 +78,7 @@ class StudentResultsPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "Your results will appear here once they are uploaded by your teachers.",
+                    "Your results will appear here once they are uploaded.",
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
@@ -97,20 +87,18 @@ class StudentResultsPage extends StatelessWidget {
             );
           }
 
-          final docs = snapshot.data!.docs;
+          final results = snapshot.data!;
           return RefreshIndicator(
             onRefresh: () async {
+              // You can add a refresh logic if needed, though streams update automatically
             },
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: docs.length,
+              itemCount: results.length,
               itemBuilder: (context, index) {
-                final doc = docs[index];
-                final data = doc.data() as Map<String, dynamic>;
-                final marks = data['marks'] ?? 0;
-                final maxMarks = data['maxMarks'] ?? 100;
-                final percentage = (marks / maxMarks * 100).round();
-                
+                final result = results[index];
+                final percentage = (result.marks / result.maxMarks * 100).round();
+
                 return Card(
                   margin: const EdgeInsets.only(bottom: 12),
                   elevation: 2,
@@ -126,13 +114,7 @@ class StudentResultsPage extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
-                              child: Text(
-                                data['courseId'] ?? 'Unknown Course',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                              child: _CourseNameWidget(courseId: result.courseId),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -140,15 +122,15 @@ class StudentResultsPage extends StatelessWidget {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: _getGradeColor(percentage),
+                                color: _getGradeColor(result.grade),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                '${percentage}%',
+                                result.grade,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                  fontSize: 14,
                                 ),
                               ),
                             ),
@@ -156,7 +138,7 @@ class StudentResultsPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          data['examType'] ?? 'Unknown Exam',
+                          result.examId, // Using examId as the subtitle
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey[700],
@@ -165,39 +147,41 @@ class StudentResultsPage extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Uploaded: ${_formatTimestamp(data['timestamp'])}',
+                          'Uploaded: ${DateFormat.yMMMd().format(result.uploadedAt)}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[500],
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Icon(
-                              Icons.grade,
+                              Icons.check_circle_outline,
                               size: 16,
                               color: Colors.grey[600],
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${marks.toStringAsFixed(1)} / ${maxMarks.toStringAsFixed(1)}',
+                              '${result.marks.toStringAsFixed(1)} / ${result.maxMarks.toStringAsFixed(1)}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
                               ),
                             ),
                             const Spacer(),
-                            if (data['remarks'] != null && data['remarks'].isNotEmpty)
-                              Icon(
-                                Icons.comment_outlined,
-                                size: 16,
-                                color: Colors.grey[600],
+                            Text(
+                              '$percentage%',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _getGradeColor(result.grade),
                               ),
+                            ),
                           ],
                         ),
-                        if (data['remarks'] != null && data['remarks'].isNotEmpty) ...[
-                          const SizedBox(height: 8),
+                        if (result.remarks.isNotEmpty) ...[
+                          const SizedBox(height: 12),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
@@ -207,7 +191,7 @@ class StudentResultsPage extends StatelessWidget {
                               border: Border.all(color: Colors.grey[200]!),
                             ),
                             child: Text(
-                              data['remarks'],
+                              result.remarks,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[700],
@@ -228,28 +212,48 @@ class StudentResultsPage extends StatelessWidget {
     );
   }
 
-  Color _getGradeColor(int percentage) {
-    if (percentage >= 90) return Colors.green[600]!;
-    if (percentage >= 80) return Colors.blue[600]!;
-    if (percentage >= 70) return Colors.orange[600]!;
-    if (percentage >= 60) return Colors.amber[600]!;
-    return Colors.red[600]!;
-  }
-
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return 'Unknown date';
-    
-    try {
-      if (timestamp is Timestamp) {
-        final date = timestamp.toDate();
-        return '${date.day}/${date.month}/${date.year}';
-      } else if (timestamp is String) {
-        // Handle string timestamp if needed
-        return timestamp;
-      }
-      return 'Invalid date';
-    } catch (e) {
-      return 'Invalid date';
+  Color _getGradeColor(String grade) {
+    switch (grade) {
+      case 'A+':
+      case 'A':
+        return Colors.green[600]!;
+      case 'B+':
+      case 'B':
+        return Colors.blue[600]!;
+      case 'C+':
+      case 'C':
+        return Colors.orange[600]!;
+      default:
+        return Colors.red[600]!;
     }
   }
 }
+
+// Helper widget to display the course name from its ID
+class _CourseNameWidget extends StatelessWidget {
+  final String courseId;
+
+  const _CourseNameWidget({required this.courseId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Course?>(
+      future: FirestoreService.getCourse(courseId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Text("Loading course...", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold));
+        }
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+          return Text(courseId, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.red));
+        }
+        final course = snapshot.data!;
+        return Text(
+          course.name,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          overflow: TextOverflow.ellipsis,
+        );
+      },
+    );
+  }
+}
+

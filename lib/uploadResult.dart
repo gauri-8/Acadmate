@@ -55,11 +55,15 @@ class _UploadResultPageState extends State<UploadResultPage> {
         setState(() => _courses = courses);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -69,25 +73,31 @@ class _UploadResultPageState extends State<UploadResultPage> {
       final students = await FirestoreService.getStudentsByCourse(courseId);
       setState(() => _students = students);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading students: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading students: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<void> _submitResult() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final auth.User? user = auth.FirebaseAuth.instance.currentUser; // ✅ Firebase user
+    final auth.User? user = auth.FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login to upload results'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please login to upload results'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
@@ -96,46 +106,70 @@ class _UploadResultPageState extends State<UploadResultPage> {
 
     setState(() => _isLoading = true);
     try {
+      String? finalStudentUid;
+
+      // If a student was selected from the dropdown, we use their UID directly.
+      if (_selectedStudentId != null) {
+        finalStudentUid = _selectedStudentId;
+      } else {
+        // If the teacher typed an ID, we look up the UID using the numeric studentId.
+        final typedId = studentIdController.text.trim();
+        finalStudentUid = await FirestoreService.getUidFromStudentId(typedId);
+
+        if (finalStudentUid == null) {
+          throw Exception('Student with ID "$typedId" not found.');
+        }
+      }
+
+      // Now, use the confirmed finalStudentUid to upload the result.
       await FirestoreService.uploadResult(
-        studentId: _selectedStudentId ?? studentIdController.text,
+        studentId: finalStudentUid!, // This is now guaranteed to be the UID
         courseId: _selectedCourseId ?? courseIdController.text,
-        examId: examTypeController.text, // Using examType as examId for now
+        examId: examTypeController.text,
         marks: double.parse(marksController.text),
         maxMarks: double.parse(maxMarksController.text),
         remarks: remarksController.text.isEmpty ? null : remarksController.text,
         uploadedBy: user.uid,
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Result uploaded successfully ✅"),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Result uploaded successfully ✅"),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
 
       _formKey.currentState!.reset();
       setState(() {
+        studentIdController.clear();
+        examTypeController.clear();
+        marksController.clear();
+        remarksController.clear();
         _selectedStudentId = null;
-        _selectedCourseId = null;
-        _students.clear();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error uploading result: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading result: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   Future<bool> _showConfirmationDialog() async {
     final marks = double.tryParse(marksController.text) ?? 0;
     final maxMarks = double.tryParse(maxMarksController.text) ?? 100;
-    final percentage = (marks / maxMarks * 100).round();
+    final percentage = maxMarks > 0 ? (marks / maxMarks * 100).round() : 0;
 
     return await showDialog<bool>(
       context: context,
@@ -165,20 +199,8 @@ class _UploadResultPageState extends State<UploadResultPage> {
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 16),
-              _buildConfirmationRow(
-                  "Student",
-                  _selectedStudentId != null
-                      ? _students
-                      .firstWhere((s) => s.id == _selectedStudentId)
-                      .name
-                      : studentIdController.text),
-              _buildConfirmationRow(
-                  "Course",
-                  _selectedCourseId != null
-                      ? _courses
-                      .firstWhere((c) => c.id == _selectedCourseId)
-                      .name
-                      : courseIdController.text),
+              _buildConfirmationRow("Student", _getStudentName()),
+              _buildConfirmationRow("Course", _getCourseName()),
               _buildConfirmationRow("Exam Type", examTypeController.text),
               _buildConfirmationRow(
                   "Marks",

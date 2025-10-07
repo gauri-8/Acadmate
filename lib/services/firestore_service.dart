@@ -10,6 +10,26 @@ import '../models/notification.dart';
 class FirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // NEW FUNCTION: Finds a user's UID from their numeric studentId.
+  static Future<String?> getUidFromStudentId(String studentId) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .where('studentId', isEqualTo: studentId)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.id; // This is the document ID, which is the UID.
+      }
+      return null; // Return null if no user is found with that studentId.
+    } catch (e) {
+      print("Error looking up UID from studentId: $e");
+      return null;
+    }
+  }
+
+
   static Future<String> uploadResult({
     required String studentId,
     required String courseId,
@@ -21,7 +41,7 @@ class FirestoreService {
   }) async {
     try {
       final grade = _calculateGrade(marks, maxMarks);
-      
+
       final resultData = {
         "studentId": studentId,
         "courseId": courseId,
@@ -121,7 +141,7 @@ class FirestoreService {
           .where("courseId", isEqualTo: courseId)
           .orderBy("uploadedAt", descending: true)
           .get();
-      
+
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
@@ -161,18 +181,18 @@ class FirestoreService {
     try {
       final courseDoc = await _firestore.collection("courses").doc(courseId).get();
       if (!courseDoc.exists) return [];
-      
+
       final courseData = courseDoc.data()!;
       final studentIds = List<String>.from(courseData['studentIds'] ?? []);
-      
+
       if (studentIds.isEmpty) return [];
-      
+
       final snapshot = await _firestore
           .collection("users")
           .where(FieldPath.documentId, whereIn: studentIds)
           .where("role", isEqualTo: "student")
           .get();
-      
+
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
@@ -189,7 +209,7 @@ class FirestoreService {
           .collection("courses")
           .where("facultyId", isEqualTo: teacherId)
           .get();
-      
+
       return snapshot.docs.map((doc) {
         final data = doc.data();
         data['id'] = doc.id;
@@ -241,7 +261,7 @@ class FirestoreService {
           .collection("academicProfile")
           .doc("current")
           .get();
-      
+
       if (doc.exists) {
         final data = doc.data()!;
         data['id'] = doc.id;
@@ -366,8 +386,9 @@ class FirestoreService {
 
   // Utility Methods
   static String _calculateGrade(double marks, double maxMarks) {
+    if (maxMarks == 0) return "F";
     final percentage = (marks / maxMarks) * 100;
-    
+
     if (percentage >= 90) return "A+";
     if (percentage >= 80) return "A";
     if (percentage >= 70) return "B+";

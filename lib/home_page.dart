@@ -193,25 +193,26 @@ class HomePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                _buildActionCard(
-                  context: context,
-                  title: 'View Results',
-                  subtitle: 'Check your academic performance',
-                  icon: Icons.assessment,
-                  color: Colors.green,
-                  onTap: () {
-                    if (user != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => StudentResultsPage(studentId: user.uid),
-                        ),
-                      );
-                    }
-                  },
-                ),
-
-                const SizedBox(height: 12),
+                if (role == 'student') ...[
+                  _buildActionCard(
+                    context: context,
+                    title: 'View Results',
+                    subtitle: 'Check your academic performance',
+                    icon: Icons.assessment,
+                    color: Colors.green,
+                    onTap: () {
+                      if (user != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StudentResultsPage(studentId: user.uid),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
 
                 if (role == 'teacher') ...[
                   _buildActionCard(

@@ -42,16 +42,37 @@ class LoginPage extends StatelessWidget {
         final userDocRef =
         FirebaseFirestore.instance.collection('users').doc(user.uid);
         final userDoc = await userDocRef.get();
+        final studentId = user.email!.split('@')[0];
 
         if (!userDoc.exists) {
-          // If the document doesn't exist, create it
+          // If the document doesn't exist, create it with the full schema
           await userDocRef.set({
-            'name': user.displayName,
+            'id': user.uid,
+            'studentId': studentId,
+            'name': user.displayName ?? 'No Name',
             'email': user.email,
-            'role': 'student', // Assign a default role
-            'cpi': 0.0,
+            'role': 'student', // Default role
+            'batch': '', // Default empty string
+            'branch': '', // Default empty string
+            'facultyId': '', // Default empty string (for teachers)
+            'studentIds': [], // Default empty array (for teachers)
+            'createdAt': FieldValue.serverTimestamp(), // Set creation time
+            'updatedAt': FieldValue.serverTimestamp(), // Set initial update time
             'spi': 0.0,
+            'cpi': 0.0,
           });
+        } else {
+          // **MODIFIED PART: Update existing user document**
+          // Check if studentId field is missing and add it
+          Map<String, dynamic> dataToUpdate = {
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+
+          if (userDoc.data()!['studentId'] == null) {
+            dataToUpdate['studentId'] = studentId;
+          }
+
+          await userDocRef.update(dataToUpdate);
         }
 
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -61,7 +82,6 @@ class LoginPage extends StatelessWidget {
             MaterialPageRoute(builder: (context) => const HomePage()),
           );
         }
-
       } else {
         await logout();
         if (context.mounted) {
@@ -73,9 +93,6 @@ class LoginPage extends StatelessWidget {
     } catch (e, stack) {
       debugPrint("Google login error: $e");
       debugPrint("Stacktrace: $stack");
-
-      // If there's an error, try to clear everything and show a helpful message
-      // await logout();
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -92,16 +109,9 @@ class LoginPage extends StatelessWidget {
   Future<void> logout() async {
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
-
-      // Sign out from Google first
       await googleSignIn.signOut();
-
-      // Then sign out from Firebase
       await FirebaseAuth.instance.signOut();
-
-      // Clear any cached data
       await googleSignIn.disconnect();
-
       debugPrint("User logged out successfully.");
     } catch (e) {
       debugPrint("Logout error: $e");
@@ -123,7 +133,7 @@ class LoginPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              Icon( // Removed const
                 Icons.school,
                 size: 80,
                 color: Colors.blue[600],
@@ -175,3 +185,4 @@ class LoginPage extends StatelessWidget {
     );
   }
 }
+
