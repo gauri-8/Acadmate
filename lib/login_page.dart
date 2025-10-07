@@ -38,41 +38,63 @@ class LoginPage extends StatelessWidget {
       final user = userCredential.user;
 
       if (user != null && user.email!.endsWith("@iiitvadodara.ac.in")) {
-        // Check if the user document exists
         final userDocRef =
         FirebaseFirestore.instance.collection('users').doc(user.uid);
         final userDoc = await userDocRef.get();
         final studentId = user.email!.split('@')[0];
 
         if (!userDoc.exists) {
-          // If the document doesn't exist, create it with the full schema
+          // --- For NEW Users: Create both the user doc and the profile subcollection ---
           await userDocRef.set({
             'id': user.uid,
-            'studentId': studentId,
             'name': user.displayName ?? 'No Name',
             'email': user.email,
+            'studentId': studentId,
             'role': 'student', // Default role
-            'batch': '', // Default empty string
-            'branch': '', // Default empty string
-            'facultyId': '', // Default empty string (for teachers)
-            'studentIds': [], // Default empty array (for teachers)
-            'createdAt': FieldValue.serverTimestamp(), // Set creation time
-            'updatedAt': FieldValue.serverTimestamp(), // Set initial update time
+            'batch': '',
+            'branch': '',
+            'facultyId': '',
+            'studentIds': [],
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
             'spi': 0.0,
             'cpi': 0.0,
           });
+
+          // Also create the academic profile immediately
+          await userDocRef.collection('academicProfile').doc('current').set({
+            'spi': 0.0,
+            'cpi': 0.0,
+            'attendancePercentage': 0.0,
+            'semester': 'Fall 2024',
+            'academicYear': '2024-25',
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
         } else {
-          // **MODIFIED PART: Update existing user document**
-          // Check if studentId field is missing and add it
+          // --- For EXISTING Users: Update timestamps and ensure profile exists ---
           Map<String, dynamic> dataToUpdate = {
             'updatedAt': FieldValue.serverTimestamp(),
           };
 
-          if (userDoc.data()!['studentId'] == null) {
+          final data = userDoc.data() as Map<String, dynamic>?;
+          if (data != null && (data['studentId'] == null || data['studentId'] == '')) {
             dataToUpdate['studentId'] = studentId;
           }
 
           await userDocRef.update(dataToUpdate);
+
+          // Self-healing: Check if academicProfile is missing and create it
+          final profileDoc = await userDocRef.collection('academicProfile').doc('current').get();
+          if (!profileDoc.exists) {
+            await userDocRef.collection('academicProfile').doc('current').set({
+              'spi': 0.0,
+              'cpi': 0.0,
+              'attendancePercentage': 0.0,
+              'semester': 'Fall 2024',
+              'academicYear': '2024-25',
+              'lastUpdated': FieldValue.serverTimestamp(),
+            });
+          }
         }
 
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -133,7 +155,7 @@ class LoginPage extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon( // Removed const
+              Icon(
                 Icons.school,
                 size: 80,
                 color: Colors.blue[600],

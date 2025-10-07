@@ -7,7 +7,7 @@ import 'profilePage.dart';
 import 'viewResult.dart';
 import 'uploadResult.dart';
 import 'migration_page.dart';
-import 'models/student.dart';
+import 'models/academic_profile.dart'; // Import the new model
 import 'services/firestore_service.dart';
 
 class HomePage extends StatelessWidget {
@@ -17,17 +17,16 @@ class HomePage extends StatelessWidget {
     try {
       // Sign out from Firebase
       await FirebaseAuth.instance.signOut();
-      
+
       // Sign out from Google (this fixes the persistence issue)
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
-      
+
       if (context.mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       debugPrint('Logout error: $e');
-      // Still navigate even if there's an error
       if (context.mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
@@ -37,7 +36,7 @@ class HomePage extends StatelessWidget {
   Future<String?> _getUserRole() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
-    
+
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -49,25 +48,15 @@ class HomePage extends StatelessWidget {
     }
   }
 
-  Future<Student?> _getStudentData() async {
+  // This now fetches the AcademicProfile from the subcollection
+  Future<AcademicProfile?> _getStudentAcademicProfile() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return null;
-    
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      
-      if (doc.exists && doc.data()?['role'] == 'student') {
-        final data = doc.data()!;
-        data['id'] = doc.id;
-        return Student.fromJson(data);
-      }
-      return null;
-    }
 
-    catch (e) {
+    try {
+      return await FirestoreService.getAcademicProfile(user.uid);
+    } catch (e) {
+      debugPrint("Error fetching academic profile: $e");
       return null;
     }
   }
@@ -75,7 +64,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AcadMate'),
@@ -108,7 +97,7 @@ class HomePage extends StatelessWidget {
         future: _getUserRole(),
         builder: (context, snapshot) {
           final role = snapshot.data ?? 'student';
-          
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -133,9 +122,9 @@ class HomePage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        const Text(
                           'Welcome back!',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -180,9 +169,7 @@ class HomePage extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
                 Text(
                   'Quick Actions',
                   style: TextStyle(
@@ -192,28 +179,25 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                if (role == 'student') ...[
-                  _buildActionCard(
-                    context: context,
-                    title: 'View Results',
-                    subtitle: 'Check your academic performance',
-                    icon: Icons.assessment,
-                    color: Colors.green,
-                    onTap: () {
-                      if (user != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StudentResultsPage(studentId: user.uid),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
+                _buildActionCard(
+                  context: context,
+                  title: 'View Results',
+                  subtitle: 'Check your academic performance',
+                  icon: Icons.assessment,
+                  color: Colors.green,
+                  onTap: () {
+                    if (user != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              StudentResultsPage(studentId: user.uid),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
                 if (role == 'teacher') ...[
                   _buildActionCard(
                     context: context,
@@ -232,8 +216,6 @@ class HomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                 ],
-
-                // Allow migration for all users (temporary for setup)
                 _buildActionCard(
                   context: context,
                   title: 'Database Migration',
@@ -250,7 +232,6 @@ class HomePage extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-
                 _buildActionCard(
                   context: context,
                   title: 'Profile',
@@ -268,9 +249,7 @@ class HomePage extends StatelessWidget {
                     }
                   },
                 ),
-
                 const SizedBox(height: 24),
-
                 if (role == 'student') ...[
                   Text(
                     'Academic Overview',
@@ -359,26 +338,21 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildStatsCard(BuildContext context) {
-    return FutureBuilder<Student?>(
-      future: _getStudentData(),
+    // This now uses the new function to fetch the AcademicProfile
+    return FutureBuilder<AcademicProfile?>(
+      future: _getStudentAcademicProfile(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Padding(
+          return const Card(
+            child: Padding(
               padding: EdgeInsets.all(16),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: Center(child: CircularProgressIndicator()),
             ),
           );
         }
 
-        final student = snapshot.data;
-        
+        final profile = snapshot.data;
+
         return Card(
           elevation: 2,
           shape: RoundedRectangleBorder(
@@ -386,16 +360,18 @@ class HomePage extends StatelessWidget {
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildStatItem('SPI', student?.spi.toStringAsFixed(2) ?? '-', Colors.blue),
-                    _buildStatItem('CPI', student?.cpi.toStringAsFixed(2) ?? '-', Colors.green),
-                    _buildStatItem('Attendance', '${student?.attendancePercentage.toStringAsFixed(1) ?? '-'}%', Colors.orange),
-                  ],
-                ),
+                // The values now come from the 'profile' object
+                _buildStatItem('SPI', profile?.spi.toStringAsFixed(2) ?? 'N/A',
+                    Colors.blue),
+                _buildStatItem('CPI', profile?.cpi.toStringAsFixed(2) ?? 'N/A',
+                    Colors.green),
+                _buildStatItem(
+                    'Attendance',
+                    '${profile?.attendancePercentage.toStringAsFixed(1) ?? 'N/A'}%',
+                    Colors.orange),
               ],
             ),
           ),
@@ -426,4 +402,4 @@ class HomePage extends StatelessWidget {
       ],
     );
   }
-} 
+}
