@@ -46,22 +46,24 @@ class Exam {
 
   factory Exam.fromJson(Map<String, dynamic> json) {
     return Exam(
-      id: json["id"],
-      courseId: json["courseId"],
-      name: json["name"],
-      examType: json["examType"],
+      id: json["id"] ?? '',
+      courseId: json["courseId"] ?? 'Unknown Course',
+      name: json["name"] ?? 'Untitled Exam',
+      examType: json["examType"] ?? 'General',
       maxMarks: json["maxMarks"]?.toDouble() ?? 100.0,
       passingMarks: json["passingMarks"]?.toDouble() ?? 40.0,
       weightage: json["weightage"]?.toDouble() ?? 0.0,
-      scheduledDate: json["scheduledDate"] != null 
-          ? (json["scheduledDate"] as Timestamp).toDate() 
+      scheduledDate: json["scheduledDate"] is Timestamp
+          ? (json["scheduledDate"] as Timestamp).toDate()
           : null,
-      conductedDate: json["conductedDate"] != null 
-          ? (json["conductedDate"] as Timestamp).toDate() 
+      conductedDate: json["conductedDate"] is Timestamp
+          ? (json["conductedDate"] as Timestamp).toDate()
           : null,
       isPublished: json["isPublished"] ?? false,
-      createdBy: json["createdBy"],
-      createdAt: (json["createdAt"] as Timestamp).toDate(),
+      createdBy: json["createdBy"] ?? 'Unknown',
+      createdAt: json["createdAt"] is Timestamp
+          ? (json["createdAt"] as Timestamp).toDate()
+          : DateTime.now(), // Fallback to current time if missing
     );
   }
 
