@@ -14,20 +14,20 @@ class Course {
   });
 
   Map<String, dynamic> toJson() => {
-        "id": id,
-        "name": name,
-        "code": code,
-        "facultyId": facultyId,
-        "studentIds": studentIds,
-      };
+    "id": id,
+    "name": name,
+    "code": code,
+    "facultyId": facultyId,
+    "studentIds": studentIds,
+  };
 
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
-      id: json["id"],
-      name: json["name"],
-      code: json["code"],
-      facultyId: json["facultyId"],
-      studentIds: List<String>.from(json["studentIds"]),
+      id: json["id"] ?? '',
+      name: json["name"] ?? 'Unnamed Course',
+      code: json["code"] ?? 'N/A',
+      facultyId: json["facultyId"] ?? '',
+      studentIds: List<String>.from(json["studentIds"] ?? []),
     );
   }
 }
