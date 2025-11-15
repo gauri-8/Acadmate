@@ -5,10 +5,12 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'profilePage.dart';
 import 'viewResult.dart';
+import 'results_page.dart';
+import 'course_details_page.dart';
 import 'uploadResult.dart';
 import 'manage_exams_page.dart';
-import 'send_notification_page.dart'; // Import the new page
-import 'notifications_page.dart'; // Import the new page
+import 'send_notification_page.dart';
+import 'notifications_page.dart';
 import 'migration_page.dart';
 import 'models/academic_profile.dart';
 import 'services/firestore_service.dart';
@@ -133,7 +135,7 @@ class _StudentDashboard extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => StudentResultsPage(studentId: user.uid)),
+                MaterialPageRoute(builder: (context) => const ResultsPage()),
               );
             },
           ),
@@ -202,13 +204,52 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
-    return Column(
-      children: [
-        _buildWelcomeHeader(user, 'teacher'),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildWelcomeHeader(user, 'teacher'),
+          const SizedBox(height: 24),
+
+          // --- QUICK ACTIONS SECTION (RE-ADDED) ---
+          Text('Quick Actions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+          const SizedBox(height: 16),
+          _buildActionCard(
+            context: context,
+            title: 'Upload Results',
+            subtitle: 'Add new exam results for students',
+            icon: Icons.upload_file,
+            color: Colors.orange,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const UploadResultPage())),
+          ),
+          const SizedBox(height: 12),
+          _buildActionCard(
+            context: context,
+            title: 'Manage Exams',
+            subtitle: 'Create and view course exams',
+            icon: Icons.edit_note,
+            color: Colors.cyan,
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageExamsPage())),
+          ),
+          const SizedBox(height: 12),
+          _buildActionCard(
+            context: context,
+            title: 'Send Notification',
+            subtitle: 'Broadcast messages to students',
+            icon: Icons.campaign,
+            color: Colors.teal,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SendNotificationPage()),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+
+          // --- MY COURSES SECTION ---
+          Row(
             children: [
               Icon(Icons.school_outlined, color: Colors.grey[800]),
               const SizedBox(width: 8),
@@ -218,10 +259,8 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: FutureBuilder<List<Course>>(
+          const SizedBox(height: 8),
+          FutureBuilder<List<Course>>(
             future: _coursesFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -236,7 +275,9 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
 
               final courses = snapshot.data!;
               return ListView.builder(
-                padding: const EdgeInsets.all(16),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
                 itemCount: courses.length,
                 itemBuilder: (context, index) {
                   final course = courses[index];
@@ -253,9 +294,9 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
                       ),
                       trailing: const Icon(Icons.arrow_forward_ios),
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Tapped on ${course.name}')),
-                        );
+                        Navigator.push(context, MaterialPageRoute(
+                            builder: (context) => CourseDetailsPage(course: course)
+                        ));
                       },
                     ),
                   );
@@ -263,8 +304,8 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
               );
             },
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -281,8 +322,8 @@ Future<AcademicProfile?> _getStudentAcademicProfile(String userId) async {
 }
 
 Widget _buildWelcomeHeader(User? user, String role) {
+  // Removed margin from Card to be consistent with padding
   return Card(
-    margin: const EdgeInsets.all(16),
     elevation: 4,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
     child: Container(

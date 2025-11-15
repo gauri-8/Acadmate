@@ -397,4 +397,20 @@ class FirestoreService {
     if (percentage >= 40) return "C";
     return "F";
   }
+
+  // NEW FUNCTION to get sent notifications
+  static Stream<List<Notification>> getSentNotifications(String teacherId) {
+    return _firestore
+        .collection("notifications")
+        .where("createdBy", isEqualTo: teacherId) // Find notifications sent by this user
+        .orderBy("createdAt", descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return Notification.fromJson(data);
+      }).toList();
+    });
+  }
 }
