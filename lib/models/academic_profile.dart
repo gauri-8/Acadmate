@@ -34,14 +34,16 @@ class AcademicProfile {
 
   factory AcademicProfile.fromJson(Map<String, dynamic> json) {
     return AcademicProfile(
-      id: json["id"],
-      userId: json["userId"],
+      id: json["id"] ?? '', // Provides a default empty string if null
+      userId: json["userId"] ?? '', // Provides a default empty string if null
       spi: json["spi"]?.toDouble() ?? 0.0,
       cpi: json["cpi"]?.toDouble() ?? 0.0,
       attendancePercentage: json["attendancePercentage"]?.toDouble() ?? 0.0,
       semester: json["semester"] ?? "",
       academicYear: json["academicYear"] ?? "",
-      lastUpdated: (json["lastUpdated"] as Timestamp).toDate(),
+      lastUpdated: json["lastUpdated"] is Timestamp
+          ? (json["lastUpdated"] as Timestamp).toDate()
+          : DateTime.now(), // Fallback to current time
     );
   }
 

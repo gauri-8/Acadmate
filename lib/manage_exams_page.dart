@@ -6,7 +6,10 @@ import 'models/course.dart';
 import 'models/exam.dart';
 
 class ManageExamsPage extends StatefulWidget {
-  const ManageExamsPage({super.key});
+  // Can be initialized with a specific course
+  final Course? course;
+
+  const ManageExamsPage({super.key, this.course});
 
   @override
   State<ManageExamsPage> createState() => _ManageExamsPageState();
@@ -27,7 +30,15 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
   @override
   void initState() {
     super.initState();
-    _loadCourses();
+    if (widget.course != null) {
+      // If a course is provided, use it directly
+      _selectedCourseId = widget.course!.id;
+      _courses = [widget.course!];
+      _isLoading = false;
+    } else {
+      // Otherwise, load all courses for the teacher
+      _loadCourses();
+    }
   }
 
   Future<void> _loadCourses() async {
@@ -53,7 +64,7 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manage Exams'),
+        title: Text(widget.course != null ? "${widget.course!.code} Exams" : "Manage Exams"),
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
       ),
@@ -78,6 +89,7 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
           : FloatingActionButton(
         onPressed: () => _showCreateExamDialog(),
         backgroundColor: Colors.blue[600],
+        tooltip: 'Create New Exam',
         child: const Icon(Icons.add),
       ),
     );
@@ -86,9 +98,18 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
   Widget _buildCourseSelector() {
     return DropdownButtonFormField<String>(
       value: _selectedCourseId,
-      decoration: const InputDecoration(
+      // Disable dropdown if a course was passed in
+      onChanged: widget.course != null ? null : (value) {
+        setState(() {
+          _selectedCourseId = value;
+        });
+      },
+      decoration: InputDecoration(
         labelText: 'Select a Course',
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
+        // Grey out if disabled
+        filled: widget.course != null,
+        fillColor: widget.course != null ? Colors.grey[200] : Colors.transparent,
       ),
       items: _courses.map((course) {
         return DropdownMenuItem(
@@ -96,11 +117,6 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
           child: Text('${course.name} (${course.code})'),
         );
       }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedCourseId = value;
-        });
-      },
     );
   }
 
@@ -124,11 +140,12 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
           itemBuilder: (context, index) {
             final exam = exams[index];
             return Card(
+              margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                title: Text(exam.name),
+                title: Text(exam.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text(
                     'Type: ${exam.examType}, Max Marks: ${exam.maxMarks}'),
-                trailing: Text('${exam.weightage}%'),
+                trailing: Text('${exam.weightage}%', style: const TextStyle(fontWeight: FontWeight.w500)),
               ),
             );
           },
@@ -138,6 +155,13 @@ class _ManageExamsPageState extends State<ManageExamsPage> {
   }
 
   void _showCreateExamDialog() {
+    // Clear controllers before showing
+    _examNameController.clear();
+    _examTypeController.clear();
+    _maxMarksController.clear();
+    _passingMarksController.clear();
+    _weightageController.clear();
+
     showDialog(
       context: context,
       builder: (context) {
