@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../models/event.dart';
 import '../models/result.dart';
 import '../models/user.dart';
@@ -469,6 +470,29 @@ class FirestoreService {
           .delete();
     } catch (e) {
       throw Exception("Failed to delete event: $e");
+    }
+  }
+
+  // NEW FUNCTION to save attendance
+  static Future<void> saveAttendance(
+      String courseId, DateTime date, Map<String, String> attendanceStatus) async {
+    try {
+      // Format the date as YYYY-MM-DD to use as a document ID
+      final dateString = DateFormat('yyyy-MM-dd').format(date);
+
+      final attendanceData = {
+        'date': Timestamp.fromDate(date),
+        'statuses': attendanceStatus, // The map of studentId: "present" or "absent"
+      };
+
+      await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('attendance')
+          .doc(dateString) // Use the date as a unique ID
+          .set(attendanceData, SetOptions(merge: true)); // merge: true will update if it exists
+    } catch (e) {
+      throw Exception("Failed to save attendance: $e");
     }
   }
 }

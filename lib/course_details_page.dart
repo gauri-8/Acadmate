@@ -4,6 +4,7 @@ import 'package:acadmate/models/user.dart' as local_user;
 import 'package:acadmate/services/firestore_service.dart';
 import 'package:acadmate/uploadResult.dart';
 import 'package:acadmate/manage_exams_page.dart';
+import 'package:acadmate/attendance_page.dart'; // <-- 1. IMPORT THE NEW PAGE
 
 class CourseDetailsPage extends StatefulWidget {
   final Course course;
@@ -47,30 +48,44 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.course.name),
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           // Course Info Header
           ListTile(
-            title: Text(widget.course.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            subtitle: Text(widget.course.code, style: const TextStyle(fontSize: 18)),
+            title: Text(widget.course.name, style: Theme.of(context).textTheme.headlineSmall),
+            subtitle: Text(widget.course.code, style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.grey[700])),
             leading: CircleAvatar(
               radius: 28,
-              backgroundColor: Colors.blue[100],
+              backgroundColor: Theme.of(context).primaryColor.withAlpha(26),
               child: Text(
                 widget.course.code.substring(0, 2),
-                style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold, fontSize: 18),
               ),
             ),
           ),
           const Divider(height: 32),
 
           // Quick Actions for this course
-          Text('Quick Actions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+          Text('Quick Actions', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
+
+          // --- 2. ADD THE "TAKE ATTENDANCE" CARD ---
+          _buildActionCard(
+              context: context,
+              title: "Take Attendance",
+              subtitle: "Mark attendance for ${widget.course.code}",
+              icon: Icons.check_circle_outline,
+              color: Colors.green,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (context) => AttendancePage(course: widget.course)
+                ));
+              }
+          ),
+          const SizedBox(height: 12),
+
           _buildActionCard(
               context: context,
               title: "Upload Results",
@@ -91,8 +106,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
               icon: Icons.edit_note,
               color: Colors.cyan,
               onTap: () {
-                // --- THIS IS THE UPDATE ---
-                // Pass the current course to the ManageExamsPage
                 Navigator.push(context, MaterialPageRoute(
                     builder: (context) => ManageExamsPage(course: widget.course)
                 ));
@@ -101,7 +114,7 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           const SizedBox(height: 24),
 
           // Enrolled Students List
-          Text('Enrolled Students (${_students.length})', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+          Text('Enrolled Students (${_students.length})', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -154,35 +167,36 @@ Widget _buildActionCard({
   required VoidCallback onTap,
 }) {
   return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                child: Icon(icon, color: color, size: 24),
+    elevation: 2,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              // --- 3. FIX THE DEPRECATION WARNING ---
+              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 4),
-                    Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-            ],
-          ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+          ],
         ),
       ),
+    ),
   );
-  }
+}
