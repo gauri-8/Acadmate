@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // <-- 1. ADD THIS IMPORT
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:acadmate/models/course.dart';
 import 'package:acadmate/models/user.dart' as local_user;
-import 'package:acadmate/services/firestore_service.dart'; // <-- 2. ADD THIS IMPORT
-import 'package:acadmate/models/attendance.dart';
+import 'package:acadmate/services/firestore_service.dart';
+import 'package:acadmate/models/attendance.dart'; // <-- 1. IMPORT THE NEW MODEL
 
 class AttendancePage extends StatefulWidget {
   final Course course;
@@ -57,18 +57,24 @@ class _AttendancePageState extends State<AttendancePage> {
     }
   }
 
+  // --- UPDATED: Use the new service function and model ---
   Future<void> _loadAttendanceForDate(DateTime date) async {
     setState(() => _isLoading = true);
     try {
+      // Use the new service function
       final AttendanceRecord? record = await FirestoreService.getAttendanceRecord(widget.course.id, date);
 
       if (record != null) {
+        // If a record exists, load its statuses
         setState(() {
           _attendanceStatus = record.statuses;
         });
       } else {
+        // If no record exists, default all to 'present'
         setState(() {
-          _attendanceStatus = { for (var s in _students) s.id : 'present' };
+          // Ensure all students from the course list are in the map
+          final newStatusMap = { for (var s in _students) s.id : 'present' };
+          _attendanceStatus = newStatusMap;
         });
       }
     } catch (e) {
@@ -80,17 +86,21 @@ class _AttendancePageState extends State<AttendancePage> {
     }
   }
 
+  // --- UPDATED: Use the new service function and model ---
   Future<void> _saveAttendance() async {
     setState(() => _isSaving = true);
     try {
+      // 1. Create the date string to use as the Document ID
       final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
+      // 2. Create an instance of our new model
       final attendanceRecord = AttendanceRecord(
         id: dateString,
         date: _selectedDate,
         statuses: _attendanceStatus,
       );
 
+      // 3. Pass the model to the service function
       await FirestoreService.saveAttendance(
         widget.course.id,
         attendanceRecord,
@@ -147,7 +157,7 @@ class _AttendancePageState extends State<AttendancePage> {
         child: ElevatedButton(
           onPressed: _isSaving ? null : _saveAttendance,
           child: _isSaving
-              ? const SizedBox(
+              ? const SizedBox( // Show a small spinner when saving
             height: 20,
             width: 20,
             child: CircularProgressIndicator(
@@ -194,6 +204,7 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   Widget _buildStudentTile(local_user.User student) {
+    // Ensure every student has a status, default to 'present'
     final status = _attendanceStatus[student.id] ?? 'present';
 
     return Card(
@@ -210,6 +221,7 @@ class _AttendancePageState extends State<AttendancePage> {
             isSelected: [status == 'present', status == 'absent'],
             onPressed: (index) {
               setState(() {
+                // Ensure the student ID exists in the map before updating
                 _attendanceStatus[student.id] = (index == 0) ? 'present' : 'absent';
               });
             },
