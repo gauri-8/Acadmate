@@ -179,7 +179,7 @@ Widget _buildActionCard({
             Container(
               padding: const EdgeInsets.all(12),
               // --- 3. FIX THE DEPRECATION WARNING ---
-              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(12)), // 26 is ~10% opacity
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 16),

@@ -8,6 +8,8 @@ import '../models/academic_profile.dart';
 import '../models/exam.dart';
 import '../models/academic_year.dart';
 import '../models/notification.dart';
+import '../models/event.dart'; // Import Event
+import '../models/attendance.dart'; // <-- 1. IMPORT THE NEW MODEL
 
 class FirestoreService {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -31,6 +33,39 @@ class FirestoreService {
     }
   }
 
+  static Future<void> saveAttendance(String courseId, AttendanceRecord record) async {
+    try {
+      await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('attendance')
+          .doc(record.id) // The ID is the date string (e.g., "2025-11-17")
+          .set(record.toJson(), SetOptions(merge: true));
+    } catch (e) {
+      throw Exception("Failed to save attendance: $e");
+    }
+  }
+
+  // NEW function to get a single attendance record
+  static Future<AttendanceRecord?> getAttendanceRecord(String courseId, DateTime date) async {
+    try {
+      final dateString = DateFormat('yyyy-MM-dd').format(date);
+      final doc = await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('attendance')
+          .doc(dateString)
+          .get();
+
+      if (doc.exists) {
+        return AttendanceRecord.fromJson(doc.data()!, doc.id);
+      }
+      return null;
+    } catch (e) {
+      print("Error getting attendance record: $e");
+      return null;
+    }
+  }
 
   static Future<String> uploadResult({
     required String studentId,
@@ -474,25 +509,25 @@ class FirestoreService {
   }
 
   // NEW FUNCTION to save attendance
-  static Future<void> saveAttendance(
-      String courseId, DateTime date, Map<String, String> attendanceStatus) async {
-    try {
-      // Format the date as YYYY-MM-DD to use as a document ID
-      final dateString = DateFormat('yyyy-MM-dd').format(date);
-
-      final attendanceData = {
-        'date': Timestamp.fromDate(date),
-        'statuses': attendanceStatus, // The map of studentId: "present" or "absent"
-      };
-
-      await _firestore
-          .collection('courses')
-          .doc(courseId)
-          .collection('attendance')
-          .doc(dateString) // Use the date as a unique ID
-          .set(attendanceData, SetOptions(merge: true)); // merge: true will update if it exists
-    } catch (e) {
-      throw Exception("Failed to save attendance: $e");
-    }
-  }
+  // static Future<void> saveAttendance(
+  //     String courseId, DateTime date, Map<String, String> attendanceStatus) async {
+  //   try {
+  //     // Format the date as YYYY-MM-DD to use as a document ID
+  //     final dateString = DateFormat('yyyy-MM-dd').format(date);
+  //
+  //     final attendanceData = {
+  //       'date': Timestamp.fromDate(date),
+  //       'statuses': attendanceStatus, // The map of studentId: "present" or "absent"
+  //     };
+  //
+  //     await _firestore
+  //         .collection('courses')
+  //         .doc(courseId)
+  //         .collection('attendance')
+  //         .doc(dateString) // Use the date as a unique ID
+  //         .set(attendanceData, SetOptions(merge: true)); // merge: true will update if it exists
+  //   } catch (e) {
+  //     throw Exception("Failed to save attendance: $e");
+  //   }
+  // }
 }

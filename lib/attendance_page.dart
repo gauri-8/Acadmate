@@ -1,9 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // <-- 1. ADD THIS IMPORT
 import 'package:acadmate/models/course.dart';
 import 'package:acadmate/models/user.dart' as local_user;
-import 'package:acadmate/services/firestore_service.dart';
+import 'package:acadmate/services/firestore_service.dart'; // <-- 2. ADD THIS IMPORT
+import 'package:acadmate/models/attendance.dart';
 
 class AttendancePage extends StatefulWidget {
   final Course course;
@@ -20,7 +21,6 @@ class _AttendancePageState extends State<AttendancePage> {
   bool _isSaving = false;
   DateTime _selectedDate = DateTime.now();
 
-  // A map to keep track of attendance status
   // Key: studentId, Value: "present" | "absent"
   Map<String, String> _attendanceStatus = {};
 
@@ -34,6 +34,7 @@ class _AttendancePageState extends State<AttendancePage> {
     setState(() => _isLoading = true);
     try {
       final students = await FirestoreService.getStudentsByCourse(widget.course.id);
+
       // Initialize all students as 'present' by default
       final statusMap = { for (var s in students) s.id : 'present' };
 
@@ -56,25 +57,16 @@ class _AttendancePageState extends State<AttendancePage> {
     }
   }
 
-  // --- NEW: Function to load existing attendance data ---
   Future<void> _loadAttendanceForDate(DateTime date) async {
     setState(() => _isLoading = true);
-    final dateString = DateFormat('yyyy-MM-dd').format(date);
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('courses')
-          .doc(widget.course.id)
-          .collection('attendance')
-          .doc(dateString)
-          .get();
+      final AttendanceRecord? record = await FirestoreService.getAttendanceRecord(widget.course.id, date);
 
-      if (doc.exists && doc.data()?['statuses'] != null) {
-        final loadedStatuses = Map<String, String>.from(doc.data()!['statuses']);
+      if (record != null) {
         setState(() {
-          _attendanceStatus = loadedStatuses;
+          _attendanceStatus = record.statuses;
         });
       } else {
-        // If no record exists, default all to 'present'
         setState(() {
           _attendanceStatus = { for (var s in _students) s.id : 'present' };
         });
@@ -88,14 +80,20 @@ class _AttendancePageState extends State<AttendancePage> {
     }
   }
 
-  // --- UPDATED: Save attendance function ---
   Future<void> _saveAttendance() async {
     setState(() => _isSaving = true);
     try {
+      final dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+      final attendanceRecord = AttendanceRecord(
+        id: dateString,
+        date: _selectedDate,
+        statuses: _attendanceStatus,
+      );
+
       await FirestoreService.saveAttendance(
         widget.course.id,
-        _selectedDate,
-        _attendanceStatus,
+        attendanceRecord,
       );
 
       if (mounted) {
@@ -149,7 +147,14 @@ class _AttendancePageState extends State<AttendancePage> {
         child: ElevatedButton(
           onPressed: _isSaving ? null : _saveAttendance,
           child: _isSaving
-              ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+              ? const SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 2,
+            ),
+          )
               : const Text('Save Attendance'),
         ),
       ),
