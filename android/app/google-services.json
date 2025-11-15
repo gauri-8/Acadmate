@@ -46,6 +46,14 @@
           }
         },
         {
+          "client_id": "840032619672-f3i9cpf1mvpk26ho9a3k7fh62632euno.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.acadmate",
+            "certificate_hash": "df0f9fc2266e7846f7e2a3b9b4d7f7cd2a8ea9d6"
+          }
+        },
+        {
           "client_id": "840032619672-tjbg6hhg5vqaj55303vg2no7j4vo7ccf.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

@@ -6,6 +6,7 @@ import 'services/firestore_service.dart';
 import 'models/result.dart';
 import 'models/course.dart';
 import 'dart:collection';
+import 'widgets/pdf_viewer.dart'; // Import the PDF Viewer
 
 class ResultsPage extends StatefulWidget {
   const ResultsPage({super.key});
@@ -28,6 +29,50 @@ class _ResultsPageState extends State<ResultsPage> {
     return courseSemesterMap;
   }
 
+  // Function to handle tapping the "View Marksheet" button
+  void _viewMarksheet() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // Show a loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final url = await FirestoreService.getMarksheetUrl(user.uid, _selectedSemester);
+
+    if (mounted) {
+      Navigator.pop(context); // Dismiss the loading indicator
+    }
+
+    if (url != null) {
+      // Navigate to the PDF Viewer
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PDFViewerPage(
+              pdfUrl: url,
+              title: 'Semester $_selectedSemester Marksheet',
+            ),
+          ),
+        );
+      }
+    } else {
+      // Show an error if no URL is found
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No marksheet found for Semester $_selectedSemester.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -38,6 +83,14 @@ class _ResultsPageState extends State<ResultsPage> {
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          // ADDED: "View Marksheet" Button
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            onPressed: _viewMarksheet,
+            tooltip: 'View Marksheet',
+          ),
+        ],
       ),
       body: Column(
         children: [

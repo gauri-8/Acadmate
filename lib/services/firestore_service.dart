@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/event.dart';
 import '../models/result.dart';
 import '../models/user.dart';
 import '../models/course.dart';
@@ -412,5 +413,62 @@ class FirestoreService {
         return Notification.fromJson(data);
       }).toList();
     });
+  }
+
+  // NEW FUNCTION to get a marksheet URL
+  static Future<String?> getMarksheetUrl(String userId, int semester) async {
+    try {
+      final doc = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('marksheets')
+          .doc(semester.toString())
+          .get();
+
+      if (doc.exists) {
+        return doc.data()?['url'];
+      }
+      return null;
+    } catch (e) {
+      print("Error getting marksheet URL: $e");
+      return null;
+    }
+  }
+
+  // NEW FUNCTION to get calendar events
+  static Stream<List<Event>> getCalendarEvents() {
+    return _firestore
+        .collection('events')
+        .orderBy('date')
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return Event.fromJson(data);
+      }).toList();
+    });
+  }
+
+  static Future<void> updateEvent(String eventId, Map<String, dynamic> data) async {
+    try {
+      await _firestore
+          .collection('events')
+          .doc(eventId)
+          .update(data);
+    } catch (e) {
+      throw Exception("Failed to update event: $e");
+    }
+  }
+
+  static Future<void> deleteEvent(String eventId) async {
+    try {
+      await _firestore
+          .collection('events')
+          .doc(eventId)
+          .delete();
+    } catch (e) {
+      throw Exception("Failed to delete event: $e");
+    }
   }
 }

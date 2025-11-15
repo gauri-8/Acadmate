@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'login_page.dart';
 import 'home_page.dart';
+import 'app_theme.dart'; // <-- 1. IMPORT THE NEW THEME
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +20,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: MainPage(),
+      theme: AppTheme.theme, // <-- 2. APPLY THE THEME
+      home: const MainPage(),
     );
   }
 }
@@ -35,9 +37,19 @@ class MainPage extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          // Use a theme-aware splash/loading screen
+          return Scaffold(
+            backgroundColor: AppTheme.primaryColor,
+            body: const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+          );
         } else if (snapshot.hasError) {
-          return const Center(child: Text("Something went wrong"));
+          return const Scaffold(
+            body: Center(child: Text("Something went wrong")),
+          );
         } else if (snapshot.hasData) {
           return const HomePage();
         } else {

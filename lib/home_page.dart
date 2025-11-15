@@ -12,6 +12,7 @@ import 'manage_exams_page.dart';
 import 'send_notification_page.dart';
 import 'notifications_page.dart';
 import 'migration_page.dart';
+import 'calendar_page.dart'; // <-- 1. IMPORT THE NEW CALENDAR PAGE
 import 'models/academic_profile.dart';
 import 'services/firestore_service.dart';
 import 'models/course.dart';
@@ -55,9 +56,6 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('AcadMate'),
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
-        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.inbox_outlined),
@@ -124,8 +122,25 @@ class _StudentDashboard extends StatelessWidget {
         children: [
           _buildWelcomeHeader(user, role),
           const SizedBox(height: 24),
-          Text('Quick Actions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+          Text('Quick Actions', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
+
+          // --- 2. ADD THE CALENDAR ACTION CARD ---
+          _buildActionCard(
+            context: context,
+            title: 'My Calendar',
+            subtitle: 'View classes, events, and exams',
+            icon: Icons.calendar_today,
+            color: Colors.redAccent,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CalendarPage()),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+
           _buildActionCard(
             context: context,
             title: 'View Results',
@@ -139,9 +154,9 @@ class _StudentDashboard extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(height: 12),
 
           if (role == 'cr') ...[
+            const SizedBox(height: 12),
             _buildActionCard(
               context: context,
               title: 'Send Notification',
@@ -150,9 +165,9 @@ class _StudentDashboard extends StatelessWidget {
               color: Colors.teal,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SendNotificationPage())),
             ),
-            const SizedBox(height: 12),
           ],
 
+          const SizedBox(height: 12),
           _buildActionCard(
             context: context,
             title: 'Database Migration',
@@ -172,7 +187,7 @@ class _StudentDashboard extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           if (role == 'student' || role == 'cr') ...[
-            Text('Academic Overview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+            Text('Academic Overview', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 16),
             _buildStatsCard(context, user.uid),
           ],
@@ -212,9 +227,25 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
           _buildWelcomeHeader(user, 'teacher'),
           const SizedBox(height: 24),
 
-          // --- QUICK ACTIONS SECTION (RE-ADDED) ---
-          Text('Quick Actions', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+          Text('Quick Actions', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
+
+          // --- 2. ADD THE CALENDAR ACTION CARD (for teachers too) ---
+          _buildActionCard(
+            context: context,
+            title: 'My Calendar',
+            subtitle: 'View and manage events',
+            icon: Icons.calendar_today,
+            color: Colors.redAccent,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CalendarPage()),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+
           _buildActionCard(
             context: context,
             title: 'Upload Results',
@@ -248,18 +279,17 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
           ),
           const SizedBox(height: 24),
 
-          // --- MY COURSES SECTION ---
           Row(
             children: [
               Icon(Icons.school_outlined, color: Colors.grey[800]),
               const SizedBox(width: 8),
               Text(
                 'My Courses',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           FutureBuilder<List<Course>>(
             future: _coursesFuture,
             builder: (context, snapshot) {
@@ -282,15 +312,16 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
                 itemBuilder: (context, index) {
                   final course = courses[index];
                   return Card(
-                    elevation: 2,
                     margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     child: ListTile(
                       title: Text(course.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                       subtitle: Text(course.code),
                       leading: CircleAvatar(
-                        backgroundColor: Colors.blue[100],
-                        child: Text(course.code.substring(0, 2), style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold)),
+                        backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                        child: Text(
+                            course.code.substring(0, 2),
+                            style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)
+                        ),
                       ),
                       trailing: const Icon(Icons.arrow_forward_ios),
                       onTap: () {
@@ -322,15 +353,14 @@ Future<AcademicProfile?> _getStudentAcademicProfile(String userId) async {
 }
 
 Widget _buildWelcomeHeader(User? user, String role) {
-  // Removed margin from Card to be consistent with padding
   return Card(
     elevation: 4,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    margin: EdgeInsets.zero,
     child: Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12), // Match card shape
         gradient: LinearGradient(
           colors: [Colors.blue[600]!, Colors.blue[400]!],
           begin: Alignment.topLeft,
@@ -369,8 +399,6 @@ Widget _buildActionCard({
   required VoidCallback onTap,
 }) {
   return Card(
-    elevation: 2,
-    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -411,8 +439,6 @@ Widget _buildStatsCard(BuildContext context, String userId) {
       }
       final profile = snapshot.data;
       return Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
