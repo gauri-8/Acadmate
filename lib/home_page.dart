@@ -206,7 +206,7 @@ class _StudentDashboard extends StatelessWidget {
 // WIDGET FOR TEACHERS
 class _TeacherDashboard extends StatefulWidget {
   final String userId;
-  final String role; // Add role
+  final String role;
   const _TeacherDashboard({required this.userId, required this.role});
 
   @override
