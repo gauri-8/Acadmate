@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'profilePage.dart';
-import 'viewResult.dart';
 import 'results_page.dart';
 import 'course_details_page.dart';
 import 'uploadResult.dart';
@@ -12,7 +11,8 @@ import 'manage_exams_page.dart';
 import 'send_notification_page.dart';
 import 'notifications_page.dart';
 import 'migration_page.dart';
-import 'calendar_page.dart'; // <-- 1. IMPORT THE NEW CALENDAR PAGE
+import 'calendar_page.dart';
+import 'course_browser_page.dart'; // <-- 1. IMPORT THE NEW PAGE
 import 'models/academic_profile.dart';
 import 'services/firestore_service.dart';
 import 'models/course.dart';
@@ -97,7 +97,7 @@ class HomePage extends StatelessWidget {
           final role = snapshot.data ?? 'student';
 
           if (role == 'teacher') {
-            return _TeacherDashboard(userId: user.uid);
+            return _TeacherDashboard(userId: user.uid, role: role);
           } else {
             return _StudentDashboard(user: user, role: role);
           }
@@ -125,7 +125,6 @@ class _StudentDashboard extends StatelessWidget {
           Text('Quick Actions', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
 
-          // --- 2. ADD THE CALENDAR ACTION CARD ---
           _buildActionCard(
             context: context,
             title: 'My Calendar',
@@ -154,9 +153,25 @@ class _StudentDashboard extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 12),
+
+          // --- 2. ADD "BROWSE COURSES" CARD ---
+          _buildActionCard(
+            context: context,
+            title: 'Browse Courses',
+            subtitle: 'See all courses and faculty',
+            icon: Icons.search,
+            color: Colors.deepPurple,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CourseBrowserPage()),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
 
           if (role == 'cr') ...[
-            const SizedBox(height: 12),
             _buildActionCard(
               context: context,
               title: 'Send Notification',
@@ -165,18 +180,9 @@ class _StudentDashboard extends StatelessWidget {
               color: Colors.teal,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SendNotificationPage())),
             ),
+            const SizedBox(height: 12),
           ],
 
-          const SizedBox(height: 12),
-          _buildActionCard(
-            context: context,
-            title: 'Database Migration',
-            subtitle: 'Migrate to new database structure',
-            icon: Icons.storage,
-            color: Colors.red,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MigrationPage())),
-          ),
-          const SizedBox(height: 12),
           _buildActionCard(
             context: context,
             title: 'Profile',
@@ -200,7 +206,8 @@ class _StudentDashboard extends StatelessWidget {
 // WIDGET FOR TEACHERS
 class _TeacherDashboard extends StatefulWidget {
   final String userId;
-  const _TeacherDashboard({required this.userId});
+  final String role; // Add role
+  const _TeacherDashboard({required this.userId, required this.role});
 
   @override
   State<_TeacherDashboard> createState() => _TeacherDashboardState();
@@ -224,13 +231,12 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildWelcomeHeader(user, 'teacher'),
+          _buildWelcomeHeader(user, widget.role),
           const SizedBox(height: 24),
 
           Text('Quick Actions', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
 
-          // --- 2. ADD THE CALENDAR ACTION CARD (for teachers too) ---
           _buildActionCard(
             context: context,
             title: 'My Calendar',
@@ -274,6 +280,22 @@ class _TeacherDashboardState extends State<_TeacherDashboard> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SendNotificationPage()),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+
+          // --- 2. ADD "BROWSE COURSES" CARD ---
+          _buildActionCard(
+            context: context,
+            title: 'Browse Courses',
+            subtitle: 'See all courses and faculty',
+            icon: Icons.search,
+            color: Colors.deepPurple,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CourseBrowserPage()),
               );
             },
           ),

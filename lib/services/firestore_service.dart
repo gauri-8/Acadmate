@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import '../models/course_material.dart';
 import '../models/event.dart';
 import '../models/result.dart';
 import '../models/user.dart';
@@ -530,4 +531,84 @@ class FirestoreService {
   //     throw Exception("Failed to save attendance: $e");
   //   }
   // }
+
+// --- COURSE MATERIAL METHODS ---
+
+  // Fetches a stream of materials for a specific course
+  static Stream<List<CourseMaterial>> getCourseMaterials(String courseId) {
+    return _firestore
+        .collection('courses')
+        .doc(courseId)
+        .collection('materials')
+        .orderBy('uploadedAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        return CourseMaterial.fromJson(doc.data(), doc.id);
+      }).toList();
+    });
+  }
+
+  // Adds a new course material document (after the file is uploaded to Storage)
+  static Future<void> addCourseMaterial(String courseId, CourseMaterial material) async {
+    try {
+      await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('materials')
+          .add(material.toJson());
+    } catch (e) {
+      throw Exception('Failed to add course material: $e');
+    }
+  }
+
+  // Deletes a course material document (and its file in Storage)
+  static Future<void> deleteCourseMaterial(String courseId, String materialId) async {
+    try {
+      await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('materials')
+          .doc(materialId)
+          .delete();
+    } catch (e) {
+      throw Exception('Failed to delete course material: $e');
+    }
+  }
+
+  static Future<List<Course>> getAllCourses() async {
+    try {
+      final snapshot = await _firestore
+          .collection("courses")
+          .orderBy("name")
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return Course.fromJson(data);
+      }).toList();
+    } catch (e) {
+      throw Exception("Failed to get all courses: $e");
+    }
+  }
+
+  // Fetches ALL users with the role 'teacher'
+  static Future<List<User>> getAllTeachers() async {
+    try {
+      final snapshot = await _firestore
+          .collection("users")
+          .where("role", isEqualTo: "teacher")
+          .orderBy("name")
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return User.fromJson(data);
+      }).toList();
+    } catch (e) {
+      throw Exception("Failed to get all teachers: $e");
+    }
+  }
 }

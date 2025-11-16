@@ -4,7 +4,8 @@ import 'package:acadmate/models/user.dart' as local_user;
 import 'package:acadmate/services/firestore_service.dart';
 import 'package:acadmate/uploadResult.dart';
 import 'package:acadmate/manage_exams_page.dart';
-import 'package:acadmate/attendance_page.dart'; // <-- 1. IMPORT THE NEW PAGE
+import 'package:acadmate/attendance_page.dart';
+import 'package:acadmate/course_materials_page.dart'; // <-- 1. IMPORT THE NEW PAGE
 
 class CourseDetailsPage extends StatefulWidget {
   final Course course;
@@ -71,7 +72,21 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
           Text('Quick Actions', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 16),
 
-          // --- 2. ADD THE "TAKE ATTENDANCE" CARD ---
+          // --- 2. ADD THE "COURSE MATERIALS" CARD ---
+          _buildActionCard(
+              context: context,
+              title: "Course Materials",
+              subtitle: "View/Upload PPTs, PDFs, and Docs",
+              icon: Icons.folder_open,
+              color: Colors.purple,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (context) => CourseMaterialsPage(course: widget.course)
+                ));
+              }
+          ),
+
+          const SizedBox(height: 12),
           _buildActionCard(
               context: context,
               title: "Take Attendance",
@@ -85,7 +100,6 @@ class _CourseDetailsPageState extends State<CourseDetailsPage> {
               }
           ),
           const SizedBox(height: 12),
-
           _buildActionCard(
               context: context,
               title: "Upload Results",
@@ -178,8 +192,7 @@ Widget _buildActionCard({
           children: [
             Container(
               padding: const EdgeInsets.all(12),
-              // --- 3. FIX THE DEPRECATION WARNING ---
-              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(12)), // 26 is ~10% opacity
+              decoration: BoxDecoration(color: color.withAlpha(26), borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 16),
